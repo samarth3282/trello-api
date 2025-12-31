@@ -104,22 +104,54 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
+        // Validate critical environment variables
+        if (!process.env.MONGO_URI) {
+            throw new Error('MONGO_URI environment variable is required');
+        }
+        if (!process.env.JWT_ACCESS_SECRET) {
+            throw new Error('JWT_ACCESS_SECRET environment variable is required');
+        }
+        if (!process.env.JWT_REFRESH_SECRET) {
+            throw new Error('JWT_REFRESH_SECRET environment variable is required');
+        }
+
+        logger.info('Starting server...');
+        logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        logger.info(`Port: ${PORT}`);
+
         // Connect to MongoDB
+        logger.info('Connecting to MongoDB...');
         await connectDB();
 
-        // Connect to Redis
+        // Connect to Redis (optional - won't fail if not available)
+        logger.info('Connecting to Redis...');
         await connectRedis();
 
         // Configure Cloudinary
+        logger.info('Configuring Cloudinary...');
         configureCloudinary();
 
         // Start server
-        server.listen(PORT, () => {
-            logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-            logger.info(`API endpoint: http://localhost:${PORT}/api/${process.env.API_VERSION || 'v1'}`);
+        server.listen(PORT, '0.0.0.0', () => {
+            logger.info(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+            logger.info(`✅ API endpoint: http://localhost:${PORT}/api/${process.env.API_VERSION || 'v1'}`);
+            logger.info(`✅ Health check: http://localhost:${PORT}/api/v1/health`);
         });
     } catch (error) {
-        logger.error('Failed to start server:', error);
+        logger.error('❌ Failed to start server:', error.message);
+        logger.error('Stack:', error.stack);
+
+        // Provide helpful error messages
+        if (error.message.includes('MONGO_URI')) {
+            logger.error('💡 Please set MONGO_URI environment variable (MongoDB connection string)');
+        }
+        if (error.message.includes('JWT')) {
+            logger.error('💡 Please set JWT secrets in environment variables');
+        }
+        if (error.message.includes('ECONNREFUSED')) {
+            logger.error('💡 Cannot connect to MongoDB. Check your MONGO_URI and network access');
+        }
+
         process.exit(1);
     }
 };
