@@ -11,6 +11,18 @@ const logger = winston.createLogger({
     ),
     defaultMeta: { service: 'task-management-api' },
     transports: [
+        // Always log to console (needed for cloud platforms like Render)
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.colorize(),
+                winston.format.printf(({ level, message, timestamp, stack }) => {
+                    if (stack) {
+                        return `${timestamp} [${level}]: ${message}\n${stack}`;
+                    }
+                    return `${timestamp} [${level}]: ${message}`;
+                })
+            ),
+        }),
         // Write all logs with importance level of 'error' or less to 'error.log'
         new winston.transports.File({
             filename: path.join('logs', 'error.log'),
@@ -22,17 +34,5 @@ const logger = winston.createLogger({
         }),
     ],
 });
-
-// If not in production, log to console with colorized output
-if (process.env.NODE_ENV !== 'production') {
-    logger.add(
-        new winston.transports.Console({
-            format: winston.format.combine(
-                winston.format.colorize(),
-                winston.format.simple()
-            ),
-        })
-    );
-}
 
 module.exports = logger;
