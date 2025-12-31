@@ -1,0 +1,42 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run linter (if available)
+      run: npm run lint --if-present
+      
+    - name: Run tests (if available)
+      run: npm test --if-present
+      env:
+        NODE_ENV: test
+        MONGO_URI: ${{ secrets.MONGO_URI_TEST }}
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to Render
+      run: |
+        echo "Render auto-deploys on push to main"
+        echo "No manual deployment needed"
